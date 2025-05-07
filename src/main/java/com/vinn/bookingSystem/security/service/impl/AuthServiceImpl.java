@@ -7,6 +7,7 @@ package com.vinn.bookingSystem.security.service.impl;
 
 import com.vinn.bookingSystem.config.exceptions.UnauthorizedException;
 import com.vinn.bookingSystem.config.response.dto.ApiResponse;
+import com.vinn.bookingSystem.config.service.EmailService;
 import com.vinn.bookingSystem.config.utils.DtoUtil;
 import com.vinn.bookingSystem.config.utils.EntityUtil;
 import com.vinn.bookingSystem.features.user.dto.response.UserDto;
@@ -17,6 +18,7 @@ import com.vinn.bookingSystem.features.user.utils.UserUtil;
 import com.vinn.bookingSystem.security.dto.LoginRequest;
 import com.vinn.bookingSystem.security.dto.RegisterRequest;
 import com.vinn.bookingSystem.security.dto.ResetPasswordRequest;
+import com.vinn.bookingSystem.security.dto.VerifyEmailRequest;
 import com.vinn.bookingSystem.security.service.AuthService;
 import com.vinn.bookingSystem.security.service.JwtService;
 import com.vinn.bookingSystem.security.utils.AuthUtil;
@@ -36,6 +38,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -51,6 +54,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserUtil userUtil;
 //    private final MailService mailService;
     private final AuthUtil authUtil;
+    private final EmailService emailService;
 //    private final VisitLogService visitLogService;
 
     private final Map<String, OtpUtils.OtpData> otpStore = new ConcurrentHashMap<>();
@@ -172,6 +176,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(registerRequest.getEmail())
                 .password(this.passwordEncoder.encode(registerRequest.getPassword()))
                 .gender(registerRequest.getGender())
+                .emailVerified(SendVerifyEmail(registerRequest.getEmail()))
                 .build();
 
         this.userRepository.save(newUser);
@@ -193,11 +198,11 @@ public class AuthServiceImpl implements AuthService {
 
         log.info("User registered successfully: {}", registerRequest.getEmail());
 
-        UserDto userDto = DtoUtil.map(newUser, UserDto.class, modelMapper);
-//        userDto.setRoleName(newUser.getRoles().stream()
-//                .findFirst()
-//                .map(role -> role.getName().name().replaceFirst("^ROLE_", ""))
-//                .orElse(null));
+        final UserDto userDto = DtoUtil.map(newUser, UserDto.class, modelMapper);
+
+        final String token = UUID.randomUUID().toString();
+        final VerifyEmailRequest emailRequest = new VerifyEmailRequest(newUser.getEmail(), token);
+        this.emailService.sendVerifyEmail(emailRequest);
 
         return ApiResponse.builder()
                 .success(1)
@@ -373,6 +378,11 @@ public class AuthServiceImpl implements AuthService {
                 .data(true)
                 .message("Password reset successfully")
                 .build();
+    }
+
+    public boolean SendVerifyEmail(final String email)
+    {
+        return true;
     }
 
 }

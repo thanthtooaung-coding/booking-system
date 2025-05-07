@@ -1,45 +1,84 @@
-/*
- * @Author : Thant Htoo Aung
- * @Date : 6/5/2025
- * @Time : 11:45 AM (ICT)
- */
 package com.vinn.bookingSystem.security.interceptor;
 
 import com.vinn.bookingSystem.config.exceptions.UnauthorizedException;
 import com.vinn.bookingSystem.security.service.JwtService;
 import io.jsonwebtoken.Claims;
-import jakarta.annotation.Nonnull;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class JwtAuthenticationInterceptor implements HandlerInterceptor {
+public class JwtAuthenticationInterceptor extends OncePerRequestFilter {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     private final JwtService jwtService;
 
+    private final List<String> permittedUrls = Arrays.asList(
+            "/booking-system/api/v1/auth/**",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/swagger-resources/**",
+            "/webjars/**"
+    );
+
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
+
     @Override
-    public boolean preHandle(HttpServletRequest request, @Nonnull HttpServletResponse response, @Nonnull Object handler) throws Exception {
+    protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain)
+            throws ServletException, IOException {
+
+        String requestPath = request.getRequestURI();
+
+        if (isPermittedPath(requestPath)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         final String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
 
         if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization header.");
-            return false;
+            return;
         }
 
         final String token = authorizationHeader.substring(BEARER_PREFIX.length());
+
         try {
-            final Claims claims = this.jwtService.validateToken(token);
-            request.setAttribute("claims", claims);
-            return true;
+            final Claims claims = jwtService.validateToken(token);
+
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    claims.getSubject(),
+                    null,
+                    null
+            );
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            filterChain.doFilter(request, response);
+
         } catch (UnauthorizedException e) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
-            return false;
         }
+    }
+
+    private boolean isPermittedPath(String requestPath) {
+        return permittedUrls.stream().anyMatch(pattern -> pathMatcher.match(pattern, requestPath));
     }
 }

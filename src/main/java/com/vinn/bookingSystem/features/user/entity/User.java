@@ -32,6 +32,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(nullable = false)
+    private boolean emailVerified;
+
     @Builder.Default
     @Column(nullable = false)
     private boolean status = true;

@@ -23,7 +23,7 @@ public class SwaggerConfig {
                         .version("v1.0.0")
                         .contact(new Contact()
                                 .name("Thant Htoo Aung")
-                                .email("your.email@example.com"))
+                                .email("thanthtoo1285@gmail.com"))
                         .license(new License().name("Apache 2.0").url("http://springdoc.org")))
                 .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
                 .components(new Components()

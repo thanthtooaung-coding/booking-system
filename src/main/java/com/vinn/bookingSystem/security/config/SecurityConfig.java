@@ -6,6 +6,7 @@
 package com.vinn.bookingSystem.security.config;
 
 import com.vinn.bookingSystem.security.CustomAuthenticationEntryPoint;
+import com.vinn.bookingSystem.security.interceptor.JwtAuthenticationInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +16,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -22,6 +24,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final JwtAuthenticationInterceptor jwtAuthenticationInterceptor;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -33,6 +36,7 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(authenticationEntryPoint)
                 )
+                .addFilterBefore(jwtAuthenticationInterceptor, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
@@ -40,6 +44,13 @@ public class SecurityConfig {
         auth
                 .requestMatchers(
                         "/booking-system/api/v1/auth/**"
+                ).permitAll()
+                .requestMatchers(
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/swagger-resources/**",
+                        "/webjars/**"
                 ).permitAll()
                 .anyRequest().authenticated();
     }
