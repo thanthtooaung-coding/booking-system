@@ -2,7 +2,7 @@ spring:
   application:
     name: booking-system
   datasource:
-    url: jdbc:mysql://localhost:3306/booking_system_db?useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/booking_system_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
     username: root
     password: mysql
     driver-class-name: com.mysql.cj.jdbc.Driver
